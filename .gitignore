@@ -1,0 +1,7 @@
+node_modules
+dist
+.env.local
+.env
+.chrome-test-profile
+preview-home.png
+.DS_Store

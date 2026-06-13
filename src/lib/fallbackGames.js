@@ -1,0 +1,32 @@
+export const fallbackGames = [
+  {
+    id: '10000000-0000-4000-8000-000000000001',
+    title: 'RoboCity Rescue: місії WeDo 2.0 / Spike Prime',
+    slug: 'robocity-rescue',
+    cover_emoji: '🤖',
+    duration_minutes: 90,
+    level_count: 45,
+    description: 'Повноцінна гра з картою робота, ремонтом, деталями, програмними блоками, тестами й міні-полігонами.',
+    course: { title: 'Робототехніка', emoji: '🤖' },
+  },
+  {
+    id: '20000000-0000-4000-8000-000000000002',
+    title: 'Digital City: комп’ютерна грамотність та ШІ',
+    slug: 'digital-city-ai',
+    cover_emoji: '🛡️',
+    duration_minutes: 90,
+    level_count: 45,
+    description: 'Робочий стіл, браузер, пошта, чат, паролі, файли, міні-тести й тренування маленького ШІ.',
+    course: { title: 'Комп’ютерна грамотність та ШІ', emoji: '🧠' },
+  },
+  {
+    id: '30000000-0000-4000-8000-000000000003',
+    title: 'Scratch Arcade: гра, блоки й квест котика',
+    slug: 'scratch-arcade',
+    cover_emoji: '🐱',
+    duration_minutes: 90,
+    level_count: 45,
+    description: 'Міні-сцени, Scratch-блоки, порядок команд, персонажі, бонуси, вороги, тести й фінальна презентація.',
+    course: { title: 'Scratch', emoji: '🐱' },
+  },
+];
