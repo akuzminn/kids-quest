@@ -33,8 +33,36 @@ export async function fetchLevels(gameId) {
   return data || [];
 }
 
+function isSingleResultError(error) {
+  return error?.code === 'PGRST116' || /single JSON object/i.test(error?.message || '');
+}
+
+function missingRoomMessage() {
+  return 'Кімнату не знайдено. Якщо перед цим оновлювали SQL seed, створи нову кімнату і дай дітям новий код.';
+}
+
+function ensureSingleResult(data, error, message) {
+  if (error) {
+    if (isSingleResultError(error)) throw new Error(message);
+    throw error;
+  }
+
+  if (Array.isArray(data)) {
+    if (!data.length) throw new Error(message);
+    return data[0];
+  }
+
+  if (!data) throw new Error(message);
+  return data;
+}
+
 export async function createRoom({ gameId, teacherName, levelLimit }) {
   const client = requireSupabase();
+  const levels = await fetchLevels(gameId);
+  if (!levels.length) {
+    throw new Error('У цій грі немає рівнів. Запусти актуальний SQL seed повністю, а потім створи кімнату ще раз.');
+  }
+
   let room = null;
   let lastError = null;
 
@@ -51,9 +79,9 @@ export async function createRoom({ gameId, teacherName, levelLimit }) {
         level_limit: Number(levelLimit || 10),
       })
       .select('*')
-      .single();
+      .maybeSingle();
     if (!error) {
-      room = data;
+      room = ensureSingleResult(data, error, 'Не вдалося створити кімнату. Спробуй ще раз.');
       break;
     }
     lastError = error;
@@ -77,10 +105,11 @@ export async function getRoomByCode(code) {
     .from('rooms')
     .select('*, game:games(*, course:courses(title, slug, emoji))')
     .eq('code', safeCode)
-    .maybeSingle();
+    .limit(1);
   if (error) throw error;
-  if (!data) throw new Error('Кімнату не знайдено. Перевір код.');
-  return data;
+  const room = data?.[0];
+  if (!room) throw new Error(missingRoomMessage());
+  return room;
 }
 
 export async function fetchTeamsByRoomCode(code) {
@@ -94,7 +123,7 @@ export async function fetchTeamsByRoomCode(code) {
 export async function joinRoom({ code, name, avatar, teamId }) {
   const client = requireSupabase();
   const room = await getRoomByCode(code);
-  const { data: player, error } = await client
+  const { data, error } = await client
     .from('players')
     .insert({
       room_id: room.id,
@@ -105,8 +134,8 @@ export async function joinRoom({ code, name, avatar, teamId }) {
       status: 'online',
     })
     .select('*, team:teams(name, emoji)')
-    .single();
-  if (error) throw error;
+    .maybeSingle();
+  const player = ensureSingleResult(data, error, missingRoomMessage());
 
   await client.from('events').insert({
     room_id: room.id,
@@ -127,11 +156,11 @@ export async function getRoomBundle(roomId) {
     .from('rooms')
     .select('*, game:games(*, course:courses(title, slug, emoji))')
     .eq('id', roomId)
-    .single();
-  if (roomError) throw roomError;
+    .maybeSingle();
+  const safeRoom = ensureSingleResult(room, roomError, missingRoomMessage());
 
   const [levelsRes, playersRes, teamsRes, eventsRes] = await Promise.all([
-    client.from('game_levels').select('*').eq('game_id', room.game_id).order('order_index', { ascending: true }),
+    client.from('game_levels').select('*').eq('game_id', safeRoom.game_id).order('order_index', { ascending: true }),
     client.from('players').select('*, team:teams(name, emoji)').eq('room_id', roomId).order('joined_at', { ascending: true }),
     client.from('teams').select('*').eq('room_id', roomId).order('created_at', { ascending: true }),
     client.from('events').select('*').eq('room_id', roomId).order('created_at', { ascending: false }).limit(30),
@@ -139,9 +168,9 @@ export async function getRoomBundle(roomId) {
   for (const res of [levelsRes, playersRes, teamsRes, eventsRes]) if (res.error) throw res.error;
 
   const allLevels = levelsRes.data || [];
-  const limit = Number(room.level_limit || allLevels.length || 0);
+  const limit = Number(safeRoom.level_limit || allLevels.length || 0);
   return {
-    room,
+    room: safeRoom,
     levels: allLevels.slice(0, limit),
     players: playersRes.data || [],
     teams: teamsRes.data || [],
@@ -152,6 +181,10 @@ export async function getRoomBundle(roomId) {
 export async function startRoom(room, levels) {
   const client = requireSupabase();
   const firstLevel = levels[0];
+  if (!firstLevel) {
+    throw new Error('У цій кімнаті немає рівнів. Запусти актуальний SQL seed повністю і створи нову кімнату.');
+  }
+
   const { data, error } = await client
     .from('rooms')
     .update({
@@ -162,10 +195,10 @@ export async function startRoom(room, levels) {
     })
     .eq('id', room.id)
     .select('*')
-    .single();
-  if (error) throw error;
+    .maybeSingle();
+  const updatedRoom = ensureSingleResult(data, error, missingRoomMessage());
   await client.from('events').insert({ room_id: room.id, type: 'room_started', payload_json: {} });
-  return data;
+  return updatedRoom;
 }
 
 export async function goToLevel(room, levels, nextLevelNumber) {
@@ -177,10 +210,10 @@ export async function goToLevel(room, levels, nextLevelNumber) {
       .update({ status: 'finished', ended_at: new Date().toISOString(), timer_ends_at: null })
       .eq('id', room.id)
       .select('*')
-      .single();
-    if (error) throw error;
+      .maybeSingle();
+    const updatedRoom = ensureSingleResult(data, error, missingRoomMessage());
     await client.from('events').insert({ room_id: room.id, type: 'room_finished', payload_json: {} });
-    return data;
+    return updatedRoom;
   }
 
   const { data, error } = await client
@@ -188,10 +221,10 @@ export async function goToLevel(room, levels, nextLevelNumber) {
     .update({ current_level: nextLevel.order_index, status: 'running', timer_ends_at: timerEnd(nextLevel.time_minutes || 7) })
     .eq('id', room.id)
     .select('*')
-    .single();
-  if (error) throw error;
+    .maybeSingle();
+  const updatedRoom = ensureSingleResult(data, error, missingRoomMessage());
   await client.from('events').insert({ room_id: room.id, type: 'level_changed', payload_json: { level: nextLevel.order_index, title: nextLevel.title } });
-  return data;
+  return updatedRoom;
 }
 
 export async function resetRoom(room) {
@@ -205,10 +238,10 @@ export async function resetRoom(room) {
     .update({ status: 'waiting', current_level: 0, timer_ends_at: null, started_at: null, ended_at: null })
     .eq('id', room.id)
     .select('*')
-    .single();
-  if (roomRes.error) throw roomRes.error;
+    .maybeSingle();
+  const updatedRoom = ensureSingleResult(roomRes.data, roomRes.error, missingRoomMessage());
   await client.from('events').insert({ room_id: room.id, type: 'room_reset', payload_json: {} });
-  return roomRes.data;
+  return updatedRoom;
 }
 
 export async function completeLevel({ room, player, level, points }) {
@@ -231,11 +264,11 @@ export async function completeLevel({ room, player, level, points }) {
     .update({ score: newScore, current_level: Math.max(Number(player.current_level || 0), Number(level.order_index)) })
     .eq('id', player.id)
     .select('*, team:teams(name, emoji)')
-    .single();
-  if (playerRes.error) throw playerRes.error;
+    .maybeSingle();
+  const updatedPlayer = ensureSingleResult(playerRes.data, playerRes.error, 'Гравця не знайдено. Онови сторінку і зайди в кімнату ще раз.');
 
   if (player.team_id) {
-    const teamRes = await client.from('teams').select('score').eq('id', player.team_id).single();
+    const teamRes = await client.from('teams').select('score').eq('id', player.team_id).maybeSingle();
     if (!teamRes.error) {
       await client.from('teams').update({ score: Number(teamRes.data?.score || 0) + safePoints }).eq('id', player.team_id);
     }
@@ -248,7 +281,7 @@ export async function completeLevel({ room, player, level, points }) {
     payload_json: { name: player.name, avatar: player.avatar, level: level.order_index, title: level.title, points: safePoints },
   });
 
-  return { alreadyCompleted: false, player: playerRes.data };
+  return { alreadyCompleted: false, player: updatedPlayer };
 }
 
 export function subscribeToRoom(roomId, callback) {
