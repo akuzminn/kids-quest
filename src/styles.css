@@ -497,3 +497,16 @@ input:focus { border-color:#ea580c; box-shadow:0 0 0 4px rgba(234,88,12,.12); }
 }
 .searchResultItem.correct { border-color: #22c55e; background: #dcfce7; }
 .searchResultItem.wrong { border-color: #ef4444; background: #fee2e2; }
+
+@media (max-width: 768px) {
+  .teacherLayout, .studentLayout, .dashboardGrid, .heroGrid, .gameGrid, .gameGrid.compact,
+  .scratchBlocksGame, .robotGameLayout {
+    grid-template-columns: 1fr;
+  }
+  .teacherLayout .controlPanel { position: static; }
+  .topbar { align-items: flex-start; flex-direction: column; }
+  .robotGameGrid { max-width: 100%; overflow-x: auto; }
+  .mapCard { min-height: 300px; }
+  .mapNode { width: 80px; height: 80px; border-radius: 16px; font-size: 24px; }
+  .mapNode span { font-size: 12px; }
+}

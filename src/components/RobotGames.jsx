@@ -266,7 +266,7 @@ export function RobotAssemblyTask({ level, config, disabled, completed, onComple
     const ok = requiredProgram.every((id, idx) => program[idx] === id);
     if (!ok) {
       shake();
-      setLogs(['⚠️ Блоки стоять не в тому порядку.', `Підказка: ${requiredProgram.join(' → ')}`]);
+      setLogs(['⚠️ Блоки стоять не в тому порядку.', 'Підказка: почни зі старту, перевір момент зупинки й лише тоді запускай мотор.']);
       sound('fail');
       return;
     }

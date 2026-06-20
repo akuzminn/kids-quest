@@ -42,17 +42,15 @@ export function ScratchBlocksTask({ level, config, disabled, completed, onComple
       </div>
       <div className="scratchWorkspace">
         <div className="taskInstruction" style={{ background: '#fff', padding: '16px', borderRadius: '16px', marginBottom: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-          <strong>📝 Завдання:</strong> Збери програму рівно в такій послідовності:
+          <strong>📝 Завдання:</strong> Збери програму у правильній послідовності.
           <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {target.map((id, i) => {
-              const b = palette.find(x => x.id === id);
-              return (
-                <React.Fragment key={i}>
-                  <span style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: 'bold' }}>{b?.emoji} {b?.title}</span>
-                  {i < target.length - 1 && <span style={{ color: '#94a3b8' }}>➔</span>}
-                </React.Fragment>
-              );
-            })}
+            <span style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: 'bold' }}>
+              Почни з {palette.find((item) => item.id === target[0])?.title || 'події старту'}
+            </span>
+            <span style={{ color: '#94a3b8' }}>…</span>
+            <span style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: 'bold' }}>
+              Заверши блоком {palette.find((item) => item.id === target[target.length - 1])?.title || 'перемоги'}
+            </span>
           </div>
         </div>
         <div className="blockPalette">
