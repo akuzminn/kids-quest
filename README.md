@@ -1,5 +1,9 @@
 # Kids Quest Hub Fusion
 
+**Live app:** https://akuzminn.github.io/kids-quest/
+
+**Repository:** https://github.com/akuzminn/kids-quest
+
 Версія для тесту після об'єднання з ідеями Robocamp / Google AI Studio, але без акаунтів, покупок і зайвої логіки.
 
 ## Що додано
