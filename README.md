@@ -4,8 +4,6 @@
 
 **Repository:** https://github.com/akuzminn/kids-quest
 
-Версія для тесту після об'єднання з ідеями Robocamp / Google AI Studio, але без акаунтів, покупок і зайвої логіки.
-
 ## Що додано
 
 - Єдиний стиль RoboCity.
@@ -28,43 +26,3 @@
   - quizBattle — тестики;
   - scratchBlocks — міні-сцена з блоками Scratch;
   - scratchScene — складання сцени гри.
-
-## Запуск
-
-```bash
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-У `.env.local` вставити:
-
-```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_OR_ANON_KEY
-VITE_TEACHER_PIN=0987
-```
-
-Після зміни `.env.local` обов'язково перезапустити `npm run dev`.
-
-## Supabase
-
-У Supabase SQL Editor запусти:
-
-```txt
-supabase/001_schema_and_seed.sql
-```
-
-Цей файл створює/оновлює таблиці, policies для тестового classroom-режиму, 3 ігри та 135 рівнів.
-
-Якщо в тебе вже є стара база Kids Quest Hub, можна запустити:
-
-```txt
-supabase/004_fusion_levels.sql
-```
-
-Він теж містить фікс для `game_levels_type_check`, додає `rooms.level_limit` і перезаписує демо-рівні для 3 ігор.
-
-## Важливо
-
-RLS зараз відкритий для тесту, щоб діти могли швидко заходити без акаунтів. Для публічного запуску треба буде закрити policies під teacher token або нормальну авторизацію викладача.
